@@ -18,10 +18,12 @@ Projeto em c# com dotnet 7 utilizando minimal api para participar da rinha de ba
 ### Executar o projeto
 Para executar o projeto, siga as instruções abaixo:
 1. No terminal, navegue até o diretório raiz do projeto.
-1. Execute o seguinte comando:
+2. Execute o seguinte comando:
 ```
 docker-compose up
 ```
+- A **API** estará disponínvel na URL `http://localhost:9999`
+- **Swagger** estará disponível na URL `http://localhost:9999/swagger`
 
 ### Instruções e Documentação
-Todos as regras e documentação pode ser encontrada [aqui](https://github.com/zanfranceschi/rinha-de-backend-2023-q3/blob/main/INSTRUCOES.md).
+As regras e documentação pode ser encontrada nas [instruções](https://github.com/zanfranceschi/rinha-de-backend-2023-q3/blob/main/INSTRUCOES.md).
