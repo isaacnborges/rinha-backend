@@ -4,7 +4,7 @@ Projeto em c# com dotnet 7 utilizando minimal api para participar da rinha de ba
 ### Tecnologias
 - [C# 11](https://learn.microsoft.com/en-us/dotnet/csharp/)
 - [.NET 7](https://dotnet.microsoft.com/en-us/download/dotnet/7.0)
-- [Docker](https://www.docker.com/) / Docker compose (container orchestrator)
+- [Docker](https://www.docker.com/) / [Docker compose](https://docs.docker.com/compose/) (container orchestrator)
 - [Redis](https://redis.io/) (Distributed Cache)
 - [Nginx](https://www.nginx.com/) (Load balancer)
 - [Postgres](https://www.postgresql.org/) (Database)
@@ -15,11 +15,13 @@ Projeto em c# com dotnet 7 utilizando minimal api para participar da rinha de ba
 ### Requisitos
   - [Docker](https://docs.docker.com/engine/install/)
 
-### Compilar e executar o projeto
-Para compilar e executar o projeto, siga as instruções abaixo:
-1. Necessário possuir a versão [.Net 7](https://dotnet.microsoft.com/download/dotnet/7.0) instalada.
-2. No terminal, navegue até o diretório raiz do projeto.
-3. Execute o seguinte comando para executar o projeto:
+### Executar o projeto
+Para executar o projeto, siga as instruções abaixo:
+1. No terminal, navegue até o diretório raiz do projeto.
+1. Execute o seguinte comando:
 ```
-dotnet run --project .\src\WebApi.csproj
+docker-compose up
 ```
+
+### Instruções e Documentação
+Todos as regras e documentação pode ser encontrada [aqui](https://github.com/zanfranceschi/rinha-de-backend-2023-q3/blob/main/INSTRUCOES.md).
