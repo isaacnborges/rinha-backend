@@ -2,6 +2,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Npgsql;
 using WebApi.Database;
 using WebApi.Extensions;
 using WebApi.Pessoas;
@@ -31,9 +32,9 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
-app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, IDistributedCache cache, PessoasRequest request) =>
+app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoasRequest request) =>
 {
-    var validator = new PessoasRequestValidator(pessoaRepository, cache);
+    var validator = new PessoasRequestValidator();
     var validationResult = await validator.ValidateAsync(request);
     if (!validationResult.IsValid)
     {
@@ -50,9 +51,16 @@ app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, IDistributedC
     {
         await pessoaRepository.AddAsync(pessoa);
     }
-    catch (Exception e)
+    catch (PostgresException pEx)
     {
-        return Results.UnprocessableEntity(e.Message);
+        if (pEx?.ConstraintName == "pessoas_apelido_key")
+        {
+            return Results.UnprocessableEntity("[Apelido] ja esta em uso");
+        }
+    }
+    catch (Exception ex)
+    {
+        return Results.UnprocessableEntity(ex.Message);
     }
 
     return Results.Created($"/pessoas/{pessoa.Id}", pessoa);
@@ -69,8 +77,10 @@ app.MapGet("/pessoas/{id}", async (IPessoaRepository pessoaRepository, IDistribu
 
 app.MapGet("/pessoas", async (IPessoaRepository pessoaRepository, IDistributedCache cache, string t) =>
 {
-    var pessoas = await cache.GetCacheAsync(t, () => pessoaRepository.GetByTermAsync(t));
+    if (string.IsNullOrWhiteSpace(t))
+        return Results.BadRequest("t nao informado");
 
+    var pessoas = await cache.GetCacheAsync(t, () => pessoaRepository.GetByTermAsync(t));
     return Results.Ok(pessoas);
 });
 

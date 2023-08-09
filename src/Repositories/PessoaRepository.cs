@@ -33,16 +33,6 @@ public class PessoaRepository : IPessoaRepository
                 WHERE Id = @Id LIMIT 1", new { Id = id });
     }
 
-    public async Task<Pessoa> GetByApelidoAsync(string apelido)
-    {
-        using var connection = await _connectionFactory.CreateConnectionAsync();
-        return await connection.QuerySingleOrDefaultAsync<Pessoa>(
-            @"
-                SELECT Id, Apelido, Nome, Nascimento, Stack
-                FROM Pessoas 
-                WHERE Apelido = @Apelido LIMIT 1", new { Apelido = apelido });
-    }
-
     public async Task<IEnumerable<Pessoa>> GetByTermAsync(string term)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
