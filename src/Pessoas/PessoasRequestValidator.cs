@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using System.Globalization;
 
 namespace WebApi.Pessoas;
 
@@ -24,5 +25,5 @@ public class PessoasRequestValidator : AbstractValidator<PessoasRequest>
     }
 
     private bool BeValidDate(string date) => 
-        DateTime.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _);
+        DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
 }

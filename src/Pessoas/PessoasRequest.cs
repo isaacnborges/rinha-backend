@@ -2,10 +2,10 @@
 
 public record PessoasRequest
 {
-    public string Apelido { get; set; } = string.Empty;
-    public string Nome { get; set; } = string.Empty;
+    public string? Apelido { get; set; }
+    public string? Nome { get; set; }
     public string Nascimento { get; set; } = string.Empty;
-    public string[] Stack { get; set; } = Array.Empty<string>();
+    public string[]? Stack { get; set; }
 
     public Pessoa ToEntity(PessoasRequest request)
     {
