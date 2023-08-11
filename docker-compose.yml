@@ -64,6 +64,7 @@ services:
         limits:
           cpus: '0.3'
           memory: '0.4GB'
+    restart: unless-stopped
     networks:
      - rinhabackend
 
@@ -79,6 +80,7 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    command: ["sh", "-c", "sleep 15"]
     expose:
       - "80"
     healthcheck:
@@ -91,6 +93,7 @@ services:
         limits:
           cpus: '0.3'
           memory: '0.4GB'
+    restart: unless-stopped
     networks:
      - rinhabackend
 
