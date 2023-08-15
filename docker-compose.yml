@@ -11,8 +11,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: '1.7GB'
+          cpus: '0.6'
+          memory: '2.1GB'
     ports:
        - 5432:5432
     environment:
@@ -27,88 +27,75 @@ services:
     networks:
      - rinhabackend
 
-  # redis:
-  #   image: redis
-  #   container_name: cache
-  #   ports:
-  #     - "6379:6379"
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.3'
-  #         memory: '0.4GB'
-  #   networks:
-  #    - rinhabackend
+  api-01:
+    container_name: api-01
+    hostname: api-01
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h database -p 5432 -q -U rinha"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.4'
+          memory: '0.4GB'
+    restart: unless-stopped
+    networks:
+     - rinhabackend
 
-  # api-01:
-  #   container_name: api-01
-  #   hostname: api-01
-  #   build:
-  #     context: .
-  #     dockerfile: src/Dockerfile
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     database:
-  #       condition: service_healthy
-  #   expose:
-  #     - "80"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -h database -p 5432 -q -U rinha"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.3'
-  #         memory: '0.4GB'
-  #   restart: unless-stopped
-  #   networks:
-  #    - rinhabackend
+  api-02:
+    container_name: api-02
+    hostname: api-02
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["sh", "-c", "sleep 15"]
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h database -p 5432 -q -U rinha"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.4'
+          memory: '0.4GB'
+    restart: unless-stopped
+    networks:
+     - rinhabackend
 
-  # api-02:
-  #   container_name: api-02
-  #   hostname: api-02
-  #   build:
-  #     context: .
-  #     dockerfile: src/Dockerfile
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     database:
-  #       condition: service_healthy
-  #   command: ["sh", "-c", "sleep 15"]
-  #   expose:
-  #     - "80"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -h database -p 5432 -q -U rinha"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.3'
-  #         memory: '0.4GB'
-  #   restart: unless-stopped
-  #   networks:
-  #    - rinhabackend
-
-  # nginx:
-  #   container_name: nginx
-  #   image: nginx:latest
-  #   depends_on:
-  #     - api-01
-  #     - api-02
-  #   ports:
-  #     - "9999:9999"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.1'
-  #         memory: '0.1GB'
-  #   networks:
-  #     - rinhabackend     
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    depends_on:
+      - api-01
+      - api-02
+    ports:
+      - "9999:9999"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: '0.1GB'
+    networks:
+      - rinhabackend

@@ -8,7 +8,7 @@ public class Pessoa
     public string Apelido { get; set; }
     public string Nome { get; set; }
     public DateTime Nascimento { get; set; }
-    public IEnumerable<string>? Stack { get; set; }
+    public string? Stack { get; set; }
 }
 
 public record PessoaRequest()
@@ -51,6 +51,6 @@ public record PessoaRequest()
         Apelido = request.Apelido,
         Nome = request.Nome,
         Nascimento = DateTime.Parse(request.Nascimento, default),
-        Stack = request.Stack ?? Enumerable.Empty<string>()
+        Stack = string.Join(",", request.Stack) ?? string.Empty
     };
 }

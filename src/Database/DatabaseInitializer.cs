@@ -20,13 +20,16 @@ public class DatabaseInitializer
             Apelido VARCHAR(32) UNIQUE NOT NULL,
             Nome VARCHAR(100) NOT NULL,
             Nascimento DATE NOT NULL,
-            Stack VARCHAR(32)[]
+            Stack JSONB
         );
 
         CREATE INDEX IF NOT EXISTS term_search_index_apelido ON pessoas
             USING gin(to_tsvector('english', Apelido));
 
         CREATE INDEX IF NOT EXISTS term_search_index_nome ON pessoas
-            USING gin(to_tsvector('english', Nome));");
+            USING gin(to_tsvector('english', Nome));
+
+        CREATE INDEX IF NOT EXISTS term_search_index_stack ON pessoas
+            USING gin(to_tsvector('english', Stack));");
     }
 }
