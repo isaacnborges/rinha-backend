@@ -27,9 +27,6 @@ public class DatabaseInitializer
             USING gin(to_tsvector('english', Apelido));
 
         CREATE INDEX IF NOT EXISTS term_search_index_nome ON pessoas
-            USING gin(to_tsvector('english', Nome));
-
-        CREATE INDEX IF NOT EXISTS term_search_index_stack ON pessoas
-            USING gin(to_tsvector('english', Stack));");
+            USING gin(to_tsvector('english', Nome));");
     }
 }
