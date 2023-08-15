@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using WebApi;
 using WebApi.Database;
 using WebApi.Repositories;
@@ -23,16 +24,16 @@ app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoaRequest
     if (PessoaRequest.IsInvalidRequest(request))
         return Results.UnprocessableEntity();
 
-    var pessoaDb = await pessoaRepository.GetByApelidoAsync(request.Apelido);
-    if (pessoaDb is not null)
-        return Results.UnprocessableEntity();
-
-
     var pessoa = PessoaRequest.ToEntity(request);
 
     try
     {
         await pessoaRepository.AddAsync(pessoa);
+    }
+    catch (PostgresException pEx)
+    {
+        if (pEx?.ConstraintName == "pessoas_apelido_key")
+            return Results.UnprocessableEntity();
     }
     catch (Exception ex)
     {
