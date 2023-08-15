@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Npgsql;
 using WebApi;
 using WebApi.Database;
 using WebApi.Repositories;
@@ -44,7 +42,7 @@ app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoaRequest
     return Results.Created($"/pessoas/{pessoa.Id}", pessoa);
 });
 
-app.MapGet("/pessoas/{id}", async (IPessoaRepository pessoaRepository, IDistributedCache cache, Guid id) =>
+app.MapGet("/pessoas/{id}", async (IPessoaRepository pessoaRepository, Guid id) =>
 {
     var pessoa = await pessoaRepository.GetByIdAsync(id);
 
@@ -53,12 +51,12 @@ app.MapGet("/pessoas/{id}", async (IPessoaRepository pessoaRepository, IDistribu
         : Results.Ok(pessoa);
 });
 
-app.MapGet("/pessoas", async (IPessoaRepository pessoaRepository, IDistributedCache cache, string t) =>
+app.MapGet("/pessoas", async (IPessoaRepository pessoaRepository, string t) =>
 {
     if (string.IsNullOrWhiteSpace(t))
         return Results.BadRequest();
 
-    var pessoas = pessoaRepository.GetByTermAsync(t);
+    var pessoas = await pessoaRepository.GetByTermAsync(t);
 
     return Results.Ok(pessoas);
 });
