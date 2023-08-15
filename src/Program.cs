@@ -3,20 +3,13 @@ using Microsoft.Extensions.Caching.Distributed;
 using Npgsql;
 using WebApi;
 using WebApi.Database;
-using WebApi.Extensions;
 using WebApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<IDbConnectionFactory>(_ => new PostgreSqlConnectionFactory(builder.Configuration.GetConnectionString("DatabaseConnection")!));
 builder.Services.AddSingleton<DatabaseInitializer>();
-builder.Services.AddScoped<IPessoaRepository, PessoaRepository>();
-
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");
-    options.InstanceName = "PessoasCache";
-});
+builder.Services.AddTransient<IPessoaRepository, PessoaRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -32,16 +25,16 @@ app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoaRequest
     if (PessoaRequest.IsInvalidRequest(request))
         return Results.UnprocessableEntity();
 
+    var pessoaDb = await pessoaRepository.GetByApelidoAsync(request.Apelido);
+    if (pessoaDb is not null)
+        return Results.UnprocessableEntity();
+
+
     var pessoa = PessoaRequest.ToEntity(request);
 
     try
     {
         await pessoaRepository.AddAsync(pessoa);
-    }
-    catch (PostgresException pEx)
-    {
-        if (pEx?.ConstraintName == "pessoas_apelido_key")
-            return Results.UnprocessableEntity();
     }
     catch (Exception ex)
     {
@@ -53,7 +46,7 @@ app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoaRequest
 
 app.MapGet("/pessoas/{id}", async (IPessoaRepository pessoaRepository, IDistributedCache cache, Guid id) =>
 {
-    var pessoa = await cache.GetCacheAsync(id.ToString(), () => pessoaRepository.GetByIdAsync(id));
+    var pessoa = await pessoaRepository.GetByIdAsync(id);
 
     return pessoa is null 
         ? Results.NotFound() 
@@ -63,9 +56,10 @@ app.MapGet("/pessoas/{id}", async (IPessoaRepository pessoaRepository, IDistribu
 app.MapGet("/pessoas", async (IPessoaRepository pessoaRepository, IDistributedCache cache, string t) =>
 {
     if (string.IsNullOrWhiteSpace(t))
-        return Results.BadRequest("t nao informado");
+        return Results.BadRequest();
 
-    var pessoas = await cache.GetCacheAsync(t, () => pessoaRepository.GetByTermAsync(t));
+    var pessoas = pessoaRepository.GetByTermAsync(t);
+
     return Results.Ok(pessoas);
 });
 
