@@ -1,6 +1,4 @@
-﻿using WebApi.Pessoas;
-
-namespace WebApi.Repositories;
+﻿namespace WebApi.Repositories;
 
 public interface IPessoaRepository
 {

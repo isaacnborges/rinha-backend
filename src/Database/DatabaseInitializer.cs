@@ -16,10 +16,17 @@ public class DatabaseInitializer
         using var connection = await _connectionFactory.CreateConnectionAsync();
         await connection.ExecuteAsync(@"
         CREATE TABLE IF NOT EXISTS Pessoas (
-            Id UUID PRIMARY KEY,
-            Apelido VARCHAR(32) NOT NULL UNIQUE,
+            Id UUID PRIMARY KEY NOT NULL,
+            Apelido VARCHAR(32) UNIQUE NOT NULL,
             Nome VARCHAR(100) NOT NULL,
             Nascimento DATE NOT NULL,
-            Stack VARCHAR(32)[] )");
+            Stack VARCHAR(32)[]
+        );
+
+        CREATE INDEX IF NOT EXISTS term_search_index_apelido ON pessoas
+            USING gin(to_tsvector('english', Apelido));
+
+        CREATE INDEX IF NOT EXISTS term_search_index_nome ON pessoas
+            USING gin(to_tsvector('english', Nome));");
     }
 }

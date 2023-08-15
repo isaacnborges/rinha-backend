@@ -1,6 +1,5 @@
 ﻿using Dapper;
 using WebApi.Database;
-using WebApi.Pessoas;
 
 namespace WebApi.Repositories;
 
@@ -28,22 +27,28 @@ public class PessoaRepository : IPessoaRepository
         using var connection = await _connectionFactory.CreateConnectionAsync();
         return await connection.QuerySingleOrDefaultAsync<Pessoa>(
             @"
-                SELECT Id, Apelido, Nome, Nascimento, Stack 
+                SELECT Id, Apelido, Nome, Nascimento, Stack
                 FROM Pessoas 
-                WHERE Id = @Id LIMIT 1", new { Id = id });
+                WHERE Id = @Id 
+                LIMIT 1", 
+                new { Id = id }
+            );
     }
 
     public async Task<IEnumerable<Pessoa>> GetByTermAsync(string term)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
         var sql = @"
-            SELECT DISTINCT p.*
-            FROM Pessoas p
-            JOIN UNNEST(p.Stack) AS s ON true
-            WHERE LOWER(Apelido) LIKE LOWER(@Term) OR LOWER(Nome) LIKE LOWER(@Term) OR LOWER(s) LIKE LOWER(@Term)
+            SELECT Id, Apelido, Nome, Nascimento, Stack
+              FROM Pessoas
+            WHERE to_tsvector('english', Apelido) @@ to_tsquery(@term)
+               OR to_tsvector('english', Nome) @@ to_tsquery(@term)
+               OR to_tsvector(array_to_string(Stack, ' ')) @@ to_tsquery(@term)
             LIMIT 50";
 
-        return await connection.QueryAsync<Pessoa>(sql, new { Term = $"%{term}%" });
+        var pessoas = await connection.QueryAsync<Pessoa>(sql, new { Term = $"'${term}:*'" });
+
+        return pessoas;
     }
 
     public async Task<int> CountAsync()

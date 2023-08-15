@@ -1,11 +1,9 @@
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Npgsql;
+using WebApi;
 using WebApi.Database;
 using WebApi.Extensions;
-using WebApi.Pessoas;
 using WebApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,9 +18,6 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "PessoasCache";
 });
 
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssembly(typeof(PessoasRequestValidator).Assembly);
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -32,20 +27,12 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
-app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoasRequest request) =>
+app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoaRequest request) =>
 {
-    var validator = new PessoasRequestValidator();
-    var validationResult = await validator.ValidateAsync(request);
-    if (!validationResult.IsValid)
-    {
-        var errors = validationResult.Errors
-            .GroupBy(e => e.PropertyName)
-            .ToDictionary(group => group.Key, group => group.Select(e => e.ErrorMessage).ToArray());
+    if (PessoaRequest.IsInvalidRequest(request))
+        return Results.UnprocessableEntity();
 
-        return Results.UnprocessableEntity(errors);
-    }
-
-    var pessoa = request.ToEntity(request);
+    var pessoa = PessoaRequest.ToEntity(request);
 
     try
     {
@@ -54,9 +41,7 @@ app.MapPost("/pessoas", async (IPessoaRepository pessoaRepository, PessoasReques
     catch (PostgresException pEx)
     {
         if (pEx?.ConstraintName == "pessoas_apelido_key")
-        {
-            return Results.UnprocessableEntity("[Apelido] ja esta em uso");
-        }
+            return Results.UnprocessableEntity();
     }
     catch (Exception ex)
     {
