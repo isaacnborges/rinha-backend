@@ -1,6 +1,7 @@
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Npgsql;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
@@ -81,10 +82,19 @@ app.MapGet("/pessoas/{id}", async (
 app.MapGet("/pessoas", async (
     string t, 
     [FromServices] NpgsqlConnection connection, 
-    [FromServices] IConnectionMultiplexer cache) =>
+    [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     if (string.IsNullOrWhiteSpace(t))
         return Results.BadRequest();
+
+    var cache = multiplexer.GetDatabase();
+    var cacheKey = $"PessoasSearch:{t}";
+    var cachedResults = await cache.StringGetAsync(cacheKey);
+    if (!string.IsNullOrEmpty(cachedResults))
+    {
+        var pessoasCache = JsonSerializer.Deserialize<IEnumerable<Pessoa>>(cachedResults!);
+        return Results.Ok(pessoasCache);
+    }
 
     var sql = @"
             SELECT Id, Apelido, Nome, Nascimento, Stack::text
@@ -95,6 +105,9 @@ app.MapGet("/pessoas", async (
             LIMIT 50";
 
     var pessoas = await connection.QueryAsync<Pessoa>(sql, new { Term = $"%{t}%" });
+
+    var serializedResults = JsonSerializer.Serialize(pessoas);
+    await cache.StringSetAsync(cacheKey, serializedResults);
 
     return Results.Ok(pessoas);
 });
