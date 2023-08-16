@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using WebApi;
 using WebApi.Database;
@@ -12,11 +13,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddNpgsqlDataSource(builder.Configuration.GetConnectionString("DatabaseConnection")!, ServiceLifetime.Scoped);
 builder.Services.AddSingleton<IDbConnectionFactory>(_ => new PostgreSqlConnectionFactory(builder.Configuration.GetConnectionString("DatabaseConnection")!));
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")!));
+builder.Services.AddSingleton<ConcurrentQueue<Pessoa>>();
+builder.Services.AddHostedService<InserirPessoaQueueService>();
+
 builder.Services.AddSingleton<DatabaseInitializer>();
 
 var app = builder.Build();
 
-app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapPost("/pessoas", async (
+    PessoaRequest request, 
+    [FromServices] NpgsqlConnection connection, 
+    [FromServices] IConnectionMultiplexer multiplexer,
+    [FromServices] ConcurrentQueue<Pessoa> pessoaQueue) =>
 {
     if (PessoaRequest.IsInvalidRequest(request))
         return Results.UnprocessableEntity();
@@ -30,21 +38,10 @@ app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] NpgsqlConne
 
     try
     {
-        await connection.ExecuteAsync(
-            @"
-                INSERT INTO Pessoas (Id, Apelido, Nome, Nascimento, Stack)
-                VALUES (@Id, @Apelido, @Nome, @Nascimento, @Stack::jsonb)",
-            new
-            {
-                pessoa.Id,
-                pessoa.Apelido,
-                pessoa.Nome,
-                pessoa.Nascimento,
-                Stack = JsonSerializer.Serialize(pessoa.Stack)
-            });
-
         await cache.StringSetAsync(pessoa.Id.ToString(), JsonSerializer.Serialize(pessoa));
         await cache.StringSetAsync(pessoa.Apelido, ".");
+
+        pessoaQueue.Enqueue(pessoa);
     }
     catch (Exception)
     {
@@ -54,7 +51,10 @@ app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] NpgsqlConne
     return Results.Created($"/pessoas/{pessoa.Id}", pessoa);
 });
 
-app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapGet("/pessoas/{id}", async (
+    Guid id, 
+    [FromServices] NpgsqlConnection connection, 
+    [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     var cache = multiplexer.GetDatabase();
     var cachedResult = await cache.StringGetAsync(id.ToString());
@@ -78,7 +78,10 @@ app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection conn
         : Results.Ok(pessoa);
 });
 
-app.MapGet("/pessoas", async (string t, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer cache) =>
+app.MapGet("/pessoas", async (
+    string t, 
+    [FromServices] NpgsqlConnection connection, 
+    [FromServices] IConnectionMultiplexer cache) =>
 {
     if (string.IsNullOrWhiteSpace(t))
         return Results.BadRequest();

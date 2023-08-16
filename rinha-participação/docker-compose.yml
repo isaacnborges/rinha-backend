@@ -36,7 +36,7 @@ services:
       resources:
         limits:
           cpus: '0.3'
-          memory: '0.7GB'
+          memory: '0.5GB'
     networks:
      - rinhabackend
 
@@ -61,7 +61,7 @@ services:
       resources:
         limits:
           cpus: '0.4'
-          memory: '0.5GB'
+          memory: '0.6GB'
     restart: unless-stopped
     networks:
      - rinhabackend
@@ -88,7 +88,7 @@ services:
       resources:
         limits:
           cpus: '0.4'
-          memory: '0.5GB'
+          memory: '0.6GB'
     restart: unless-stopped
     networks:
      - rinhabackend
