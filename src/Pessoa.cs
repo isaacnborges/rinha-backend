@@ -48,9 +48,9 @@ public record PessoaRequest()
     public static Pessoa ToEntity(PessoaRequest request) => new()
     {
         Id = Guid.NewGuid(),
-        Apelido = request.Apelido,
-        Nome = request.Nome,
-        Nascimento = DateTime.Parse(request.Nascimento, default),
-        Stack = string.Join(",", request.Stack) ?? string.Empty
+        Apelido = request.Apelido!,
+        Nome = request.Nome!,
+        Nascimento = DateTime.Parse(request.Nascimento!, default),
+        Stack = string.Join(",", request.Stack!) ?? string.Empty
     };
 }
