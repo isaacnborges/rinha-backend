@@ -51,6 +51,6 @@ public record PessoaRequest()
         Apelido = request.Apelido!,
         Nome = request.Nome!,
         Nascimento = DateTime.Parse(request.Nascimento!, default),
-        Stack = string.Join(",", request.Stack!) ?? string.Empty
+        Stack = request.Stack is not null && request.Stack.Any() ? string.Join(",", request.Stack!) : string.Empty
     };
 }
