@@ -9,8 +9,6 @@ Projeto em c# com dotnet 7 utilizando minimal api para participar da rinha de ba
 - [Nginx](https://www.nginx.com/) (Load balancer)
 - [Postgres](https://www.postgresql.org/) (Database)
 - [Dapper](https://github.com/DapperLib/Dapper)
-- [Swagger](https://swagger.io/)
-- [FluentValidation](https://docs.fluentvalidation.net/en/latest/)
 
 ### Requisitos
   - [Docker](https://docs.docker.com/engine/install/)
@@ -23,7 +21,6 @@ Para executar o projeto, siga as instruções abaixo:
 docker-compose up
 ```
 - A **API** estará disponínvel na URL `http://localhost:9999`
-- **Swagger** estará disponível na URL `http://localhost:9999/swagger`
 
 ### Instruções e Documentação
 As regras e documentação pode ser encontrada nas [instruções](https://github.com/zanfranceschi/rinha-de-backend-2023-q3/blob/main/INSTRUCOES.md).
