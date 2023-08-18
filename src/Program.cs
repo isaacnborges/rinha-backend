@@ -51,10 +51,7 @@ app.MapPost("/pessoas", async (
     return Results.Created($"/pessoas/{pessoa.Id}", pessoa);
 });
 
-app.MapGet("/pessoas/{id}", async (
-    Guid id, 
-    [FromServices] NpgsqlConnection connection, 
-    [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     var cache = multiplexer.GetDatabase();
     var cachedResult = await cache.StringGetAsync(id.ToString());
@@ -78,10 +75,7 @@ app.MapGet("/pessoas/{id}", async (
         : Results.Ok(pessoa);
 });
 
-app.MapGet("/pessoas", async (
-    string t, 
-    [FromServices] NpgsqlConnection connection, 
-    [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapGet("/pessoas", async (string t, [FromServices] NpgsqlConnection connection) =>
 {
     if (string.IsNullOrWhiteSpace(t))
         return Results.BadRequest();
