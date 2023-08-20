@@ -3,28 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
-using System.Collections.Concurrent;
+using System.Data;
 using System.Text.Json;
 using WebApi;
-using WebApi.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddNpgsqlDataSource(builder.Configuration.GetConnectionString("DatabaseConnection")!, ServiceLifetime.Scoped);
-builder.Services.AddSingleton<IDbConnectionFactory>(_ => new PostgreSqlConnectionFactory(builder.Configuration.GetConnectionString("DatabaseConnection")!));
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")!));
-builder.Services.AddSingleton<ConcurrentQueue<Pessoa>>();
-builder.Services.AddHostedService<InserirPessoaQueueService>();
-
-builder.Services.AddSingleton<DatabaseInitializer>();
+builder.Services.AddScoped<IDbConnection>(_ => new NpgsqlConnection(builder.Configuration.GetConnectionString("DatabaseConnection")));
+builder.Services.AddScoped<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")!));
 
 var app = builder.Build();
 
-app.MapPost("/pessoas", async (
-    PessoaRequest request, 
-    [FromServices] NpgsqlConnection connection, 
-    [FromServices] IConnectionMultiplexer multiplexer,
-    [FromServices] ConcurrentQueue<Pessoa> pessoaQueue) =>
+app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] IDbConnection dbConnection, [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     if (PessoaRequest.IsInvalidRequest(request))
         return Results.UnprocessableEntity();
@@ -38,10 +28,12 @@ app.MapPost("/pessoas", async (
 
     try
     {
+        await dbConnection.ExecuteAsync(@"
+                INSERT INTO Pessoas (id, Apelido, Nome, Nascimento, Stack) 
+                VALUES (@Id, @Apelido, @Nome, @Nascimento, @Stack)", pessoa);
+
         await cache.StringSetAsync(pessoa.Id.ToString(), JsonSerializer.Serialize(pessoa));
         await cache.StringSetAsync(pessoa.Apelido, ".");
-
-        pessoaQueue.Enqueue(pessoa);
     }
     catch (Exception)
     {
@@ -51,7 +43,7 @@ app.MapPost("/pessoas", async (
     return Results.Created($"/pessoas/{pessoa.Id}", pessoa);
 });
 
-app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] IDbConnection dbConnection, [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     var cache = multiplexer.GetDatabase();
     var cachedResult = await cache.StringGetAsync(id.ToString());
@@ -61,7 +53,7 @@ app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection conn
         return Results.Ok(cachedPessoa);
     }
 
-    var pessoa = await connection.QuerySingleOrDefaultAsync<Pessoa>(
+    var pessoa = await dbConnection.QueryFirstOrDefaultAsync<Pessoa>(
         @"
             SELECT Id, Apelido, Nome, Nascimento, Stack
             FROM Pessoas 
@@ -75,30 +67,25 @@ app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection conn
         : Results.Ok(pessoa);
 });
 
-app.MapGet("/pessoas", async (string t, [FromServices] NpgsqlConnection connection) =>
+app.MapGet("/pessoas", async (string t, [FromServices] IDbConnection dbConnection) =>
 {
     if (string.IsNullOrWhiteSpace(t))
         return Results.BadRequest();
 
-    var sql = @"
-            SELECT Id, Apelido, Nome, Nascimento, Stack::text
-            FROM Pessoas
-            WHERE Apelido LIKE @Term
-               OR Nome LIKE @Term
-               OR to_jsonb(Stack)::text LIKE @Term
-            LIMIT 50";
-
-    var pessoas = await connection.QueryAsync<Pessoa>(sql, new { Term = $"%{t}%" });
+    var pessoas = await dbConnection.QueryAsync<Pessoa>(
+        $@"SELECT Id, Apelido, Nome, Nascimento, Stack FROM Pessoas
+                WHERE search ILIKE '%' || @Term || '%'
+                LIMIT 50", new
+        {
+            Term = t?.Replace(' ', '%')
+        });
 
     return Results.Ok(pessoas);
 });
 
-app.MapGet("/contagem-pessoas", async ([FromServices] NpgsqlConnection connection) =>
+app.MapGet("/contagem-pessoas", async ([FromServices] IDbConnection dbConnection) =>
 {
-    return Results.Ok(await connection.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM Pessoas"));
+    return Results.Ok(await dbConnection.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM Pessoas"));
 });
-
-var databaseInitializer = app.Services.GetRequiredService<DatabaseInitializer>();
-await databaseInitializer.InitializeAsync();
 
 app.Run();
