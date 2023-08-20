@@ -40,7 +40,7 @@ public record PessoaRequest()
         || string.IsNullOrEmpty(request.Apelido)
         || request.Apelido.Length > 32;
 
-    private static bool IsInvalidStackLength(string item) => item.Length > 32 || item.Length == 0;
+    private static bool IsInvalidStackLength(string item) => item.Length > 32;
 
     private static bool IsInvalidDate(string date) =>
         !DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
