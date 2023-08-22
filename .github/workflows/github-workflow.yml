@@ -44,6 +44,7 @@ jobs:
         run: docker image push --all-tags ${{ env.DOCKER_IMAGE_NAME }}
 
   stress-test:
+    name: Execute Gatling Stress Test
     runs-on: ubuntu-20.04
     needs: publish-docker
     permissions:
