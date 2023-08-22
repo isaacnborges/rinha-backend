@@ -78,7 +78,7 @@ app.MapGet("/pessoas", async (string t, [FromServices] NpgsqlConnection connecti
              WHERE search ILIKE '%' || @Term || '%'
              LIMIT 50";
 
-    var pessoas = await dbConnection.QueryAsync<Pessoa>(query, new { Term = $"%{t}%" }, commandType: CommandType.Text);
+    var pessoas = await connection.QueryAsync<Pessoa>(query, new { Term = $"%{t}%" }, commandType: CommandType.Text);
 
     return Results.Ok(pessoas);
 });
