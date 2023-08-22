@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Build
-        run: docker build -t rinha-de-backend-2023-q3 -f ./src/Dockerfile ./src
+        run: docker build -t rinha-de-backend-2023-q3 -f ./src/Dockerfile .
   stress-test:
     runs-on: ubuntu-20.04
     needs: build
