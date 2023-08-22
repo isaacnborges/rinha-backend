@@ -9,12 +9,12 @@ using WebApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddScoped<IDbConnection>(_ => new NpgsqlConnection(builder.Configuration.GetConnectionString("DatabaseConnection")));
+builder.Services.AddNpgsqlDataSource(builder.Configuration.GetConnectionString("PeopleDbConnection")!, ServiceLifetime.Scoped);
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")!));
 
 var app = builder.Build();
 
-app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] IDbConnection dbConnection, [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     if (PessoaRequest.IsInvalidRequest(request))
         return Results.UnprocessableEntity();
@@ -28,7 +28,7 @@ app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] IDbConnecti
 
     try
     {
-        await dbConnection.ExecuteAsync(@"
+        await connection.ExecuteAsync(@"
                 INSERT INTO Pessoas (id, Apelido, Nome, Nascimento, Stack) 
                 VALUES (@Id, @Apelido, @Nome, @Nascimento, @Stack)", pessoa);
 
@@ -43,7 +43,7 @@ app.MapPost("/pessoas", async (PessoaRequest request, [FromServices] IDbConnecti
     return Results.Created($"/pessoas/{pessoa.Id}", pessoa);
 });
 
-app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] IDbConnection dbConnection, [FromServices] IConnectionMultiplexer multiplexer) =>
+app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] NpgsqlConnection connection, [FromServices] IConnectionMultiplexer multiplexer) =>
 {
     var cache = multiplexer.GetDatabase();
     var cachedResult = await cache.StringGetAsync(id.ToString());
@@ -53,7 +53,7 @@ app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] IDbConnection dbConne
         return Results.Ok(cachedPessoa);
     }
 
-    var pessoa = await dbConnection.QueryFirstOrDefaultAsync<Pessoa>(
+    var pessoa = await connection.QueryFirstOrDefaultAsync<Pessoa>(
         @"
             SELECT Id, Apelido, Nome, Nascimento, Stack
             FROM Pessoas 
@@ -67,18 +67,17 @@ app.MapGet("/pessoas/{id}", async (Guid id, [FromServices] IDbConnection dbConne
         : Results.Ok(pessoa);
 });
 
-app.MapGet("/pessoas", async (string t, [FromServices] IDbConnection dbConnection) =>
+app.MapGet("/pessoas", async (string t, [FromServices] NpgsqlConnection connection) =>
 {
     if (string.IsNullOrWhiteSpace(t))
         return Results.BadRequest();
 
-    var pessoas = await dbConnection.QueryAsync<Pessoa>(
-        $@"SELECT Id, Apelido, Nome, Nascimento, Stack FROM Pessoas
+    var query = $@"SELECT Id, Apelido, Nome, Nascimento, Stack 
+                 FROM Pessoas
                 WHERE search ILIKE '%' || @Term || '%'
-                LIMIT 50", new
-        {
-            Term = t?.Replace(' ', '%')
-        });
+                LIMIT 50";
+
+    var pessoas = await connection.QueryAsync<Pessoa>(query, new { search = $"%{t}%" }, commandType: CommandType.Text);
 
     return Results.Ok(pessoas);
 });
