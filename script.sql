@@ -22,5 +22,5 @@ CREATE TABLE IF NOT EXISTS Pessoas
 );
 
 CREATE INDEX pessoas_id_index ON pessoas (id);
-CREATE INDEX pessoas_apelido_index ON PESSOAS (apelido);;
-CREATE INDEX PESSOAS_SEARCH_INDEX ON PESSOAS USING GIST (BUSCA gist_trgm_ops);
+CREATE INDEX pessoas_apelido_index ON PESSOAS (apelido);
+CREATE INDEX pessoas_search_index ON pessoas USING GIST (search gist_trgm_ops);

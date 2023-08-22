@@ -15,6 +15,8 @@ services:
           memory: '1.2GB'
     ports:
        - 5432:5432
+    volumes:
+      - ./script.sql:/docker-entrypoint-initdb.d/script.sql       
     environment:
        POSTGRES_USER: rinha
        POSTGRES_PASSWORD: k8M9ODJ7d19FCs
